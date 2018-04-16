@@ -1,0 +1,5 @@
+cron:
+- description: "daily on time job"
+  url: /task/ontime
+  timezone : Asia/Seoul
+  schedule: every 1 mins #from 10:00 to 19:00
