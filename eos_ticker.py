@@ -33,10 +33,10 @@ class EOSTicker:
         print('percent gap bithumb : ' + str(percent_gap_bithumb) + ', upbit : ' + str(percent_gap_upbit))
 
         gv.bithumb_eos = bithumb_eos
-        gv.bithumb_gap = percent_gap_bithumb
+        gv.bithumb_eos_gap = percent_gap_bithumb
         gv.upbit_eos = upbit_eos
-        gv.upbit_gap = percent_gap_upbit
-        gv.gap_krw = f_gap        
+        gv.upbit_eos_gap = percent_gap_upbit
+        gv.eos_gap_krw = f_gap        
 
     def get_bithumb_eos(self):
         body_bithumb = urllib2.urlopen(bithumb_api).read() #urlfetch.fetch(bithumb_api)
