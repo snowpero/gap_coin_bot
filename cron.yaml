@@ -3,3 +3,8 @@ cron:
   url: /task/ontime
   timezone : Asia/Seoul
   schedule: every 1 mins #from 10:00 to 19:00
+
+- description: "check coin listed"
+  url: /task/coinlisted
+  timezone : Asia/Seoul
+  schedule: every 1 mins #from 10:00 to 19:00

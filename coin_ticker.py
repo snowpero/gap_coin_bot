@@ -73,6 +73,16 @@ class CoinTicker():
         retValue = json_bithumb['data']['buy_price']
         return str(retValue)
 
+    def check_bithumb_ticker_listed(self, coin_name):
+        try:
+            urllib2.urlopen(bithumb_api + coin_name)
+        except urllib2.HTTPError, e:
+            return False
+        except Exception:
+            return False
+
+        return True
+
     def get_upbit_price(self, coin_name):
         req_upbit = urllib2.Request(upbit_api + coin_name, headers=hdr)
         json_upbit = json.load(urllib2.urlopen(req_upbit))

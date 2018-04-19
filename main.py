@@ -19,6 +19,7 @@ import datetime
 import logging
 import eos_ticker
 import coin_ticker
+from coin_db import CoinDB
 from coin_price_data import CoinPriceData
 import global_value as gv
 import pytz
@@ -29,22 +30,6 @@ gap_threshold = 2
 
 class MainPage(webapp2.RequestHandler):
     def get(self):
-        # eos_instance = eos_ticker.EOSTicker()
-        # eos_instance.get()
-
-        # # HTML 페이지 노출용
-        # message = 'EOS Price!!<p>'
-        # message += '빗썸 EOS : %s<p>업비트 EOS : %s<p>가격차이 : %s 원<p>' % (str(gv.bithumb_eos), str(gv.upbit_eos), str(gv.eos_gap_krw))
-        # message += '빗썸 가격차이 비율 : %.4f%%<p>업비트 가격차이 비율 : %.4f%%' % (gv.bithumb_eos_gap, gv.upbit_eos_gap)
-
-        # self.response.write(message)
-
-        # # 텔레그램 메세지용
-        # telegram_msg = u'EOS Price!!\n'
-        # telegram_msg += u'빗썸 EOS : %s\n업비트 EOS : %s\n가격차이 : %s원\n' % (str(gv.bithumb_eos), str(gv.upbit_eos), str(gv.eos_gap_krw))
-        # telegram_msg += u'빗썸 가격차이 비율 : %.4f%%\n업비트 가격차이 비율 : %.4f%%' % (gv.bithumb_eos_gap, gv.upbit_eos_gap)
-        # broadcast(telegram_msg)
-
         coin_ticker_instance = coin_ticker.CoinTicker()
         coin_data = coin_ticker_instance.get_data('DASH')
 
@@ -55,53 +40,28 @@ class MainPage(webapp2.RequestHandler):
 
         self.response.write(message)
 
+        # coin_listed_instance = CheckCoinListed()
+        # coin_listed_instance.check_bithumb_listed()
+
     def check_time(self):
-        nowDate = datetime.datetime.now()
-
-        seoul = timezone('Asia/Seoul')
-        loc_dt = seoul.localize(nowDate)
         fmt = '%Y-%m-%d %H:%M:%S %Z%z'
-
-        retTime = loc_dt.strftime(fmt)
+        KST = datetime.datetime.now(timezone('Asia/Seoul'))
+        retTime = KST.strftime(fmt)
 
         print('Time : ' + retTime)
 
         return retTime
 
-class CheckOnTime(webapp2.RequestHandler):  
+class CheckCoinGap(webapp2.RequestHandler):  
 
-    update_time = ''
+    arr_coins = ['EOS', 'DASH']
 
-    def get(self):        
-        update_time = self.check_time()
-        print(update_time)
-
-        # eos_instance = eos_ticker.EOSTicker()
-        # eos_instance.get()
-
-        # # 메세지 발송 조건 : 1%가 200원 이상 일때 체크
-        # check_gap = gv.upbit_eos * 0.01
-        # is_under_200_won = True
-        # if check_gap > 200:
-        #     is_under_200_won = False
-
-        # telegram_msg = u'EOS Price!!\n'
-        # telegram_msg += u'빗썸 EOS : %s\n업비트 EOS : %s\n가격차이 : %s원\n' % (str(gv.bithumb_eos), str(gv.upbit_eos), str(gv.eos_gap_krw))
-        # telegram_msg += u'빗썸 가격차이 비율 : %.4f%%\n업비트 가격차이 비율 : %.4f%%' % (gv.bithumb_eos_gap, gv.upbit_eos_gap)
-
-        # if is_under_200_won is True :
-        #     if gv.bithumb_eos_gap >= gap_threshold or gv.upbit_eos_gap >= gap_threshold :                
-        #         broadcast(telegram_msg)
-        # else :
-        #     broadcast(telegram_msg)
-
+    def get(self):
         coin_ticker_instance = coin_ticker.CoinTicker()
-        
-        eos_data = coin_ticker_instance.get_data('EOS')
-        self.check_coin_data(CoinPriceData(eos_data))
 
-        dash_data = coin_ticker_instance.get_data('DASH')
-        self.check_coin_data(CoinPriceData(dash_data))
+        for coin_name in self.arr_coins:
+            eos_data = coin_ticker_instance.get_data(coin_name)
+            self.check_coin_data(CoinPriceData(eos_data))
 
     def check_coin_data(self, coin_data):
         check_send_push_status = self.isEnablePrice(coin_data)
@@ -110,13 +70,9 @@ class CheckOnTime(webapp2.RequestHandler):
             self.sendTelegramMsg(coin_data)
 
     def check_time(self):
-        nowDate = datetime.datetime.now()
-
-        seoul = timezone('Asia/Seoul')
-        loc_dt = seoul.localize(nowDate)
         fmt = '%Y-%m-%d %H:%M:%S %Z%z'
-
-        retTime = loc_dt.strftime(fmt)
+        KST = datetime.datetime.now(timezone('Asia/Seoul'))
+        retTime = KST.strftime(fmt)
 
         return retTime
 
@@ -146,7 +102,37 @@ class CheckOnTime(webapp2.RequestHandler):
 
         broadcast(telegram_msg)
 
+
+class CheckCoinListed(webapp2.RequestHandler):
+    
+    arr_coins = ['KNC', 'HSR', 'NEO', 'EOS', 'XEM', 'OMG', 'MCO']
+
+    def get(self):
+        self.check_bithumb_listed()
+        return
+
+    def check_bithumb_listed(self):
+        for coin_name in self.arr_coins:
+            coin_ticker_instance = coin_ticker.CoinTicker()
+            is_listed = coin_ticker_instance.check_bithumb_ticker_listed(coin_name)
+            print('Coin : %s, listed : %s' % (coin_name, str(is_listed)))
+
+            query_coins = CoinDB.query_coin(coin_name)
+            if query_coins is None or query_coins.count() == 0:
+                if is_listed is True:
+                    print('Check DB and Add DB')
+                    coin = CoinDB(name = coin_name)
+                    coin.put()
+                    self.sendTelegramMsg(coin_name)
+
+        return
+
+    def sendTelegramMsg(self, coin_name):
+        telegram_msg = u'%s 코인 빗썸 상장!!' % (str(coin_name))
+        broadcast(telegram_msg)
+
 app = webapp2.WSGIApplication([
     ('/', MainPage),
-    ('/task/ontime', CheckOnTime)
+    ('/task/ontime', CheckCoinGap),
+    ('/task/coinlisted', CheckCoinListed)
 ], debug=True)
