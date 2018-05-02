@@ -7,6 +7,7 @@ import global_value as gv
 
 bithumb_api = 'https://api.bithumb.com/public/ticker/'
 upbit_api = 'https://crix-api-endpoint.upbit.com/v1/crix/candles/minutes/1?code=CRIX.UPBIT.KRW-'
+upbit_json_api = 'https://static.upbit.com/crypto-currency-deposit-desc/{coin_name}.json'
 hdr = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6)'}
 
 class CoinTicker():
@@ -76,6 +77,18 @@ class CoinTicker():
     def check_bithumb_ticker_listed(self, coin_name):
         try:
             urllib2.urlopen(bithumb_api + coin_name)
+        except urllib2.HTTPError, e:
+            return False
+        except Exception:
+            return False
+
+        return True
+    
+    def check_upbit_desc_listed(self, coin_name):
+        try:
+            req_api = upbit_json_api.replace('{coin_name}', coin_name)
+            req_upbit = urllib2.Request(req_api, headers=hdr)
+            json_upbit = json.load(urllib2.urlopen(req_upbit))       
         except urllib2.HTTPError, e:
             return False
         except Exception:

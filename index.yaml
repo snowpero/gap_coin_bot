@@ -12,6 +12,7 @@ indexes:
 
 - kind: CoinDB
   properties:
+  - name: market
   - name: name
   - name: date
     direction: desc

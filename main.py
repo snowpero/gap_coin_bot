@@ -40,8 +40,12 @@ class MainPage(webapp2.RequestHandler):
 
         self.response.write(message)
 
-        # coin_listed_instance = CheckCoinListed()
-        # coin_listed_instance.check_bithumb_listed()
+        coin_listed_instance = CheckCoinListed()
+        coin_listed_instance.check_coin_listed()
+
+        # ret_val1 = coin_ticker_instance.check_upbit_desc_listed('GTO')
+        # ret_val2 = coin_ticker_instance.check_upbit_desc_listed('KNC')
+        # print('Test : ' + str(ret_val1) + ', ' + str(ret_val2))
 
     def check_time(self):
         fmt = '%Y-%m-%d %H:%M:%S %Z%z'
@@ -54,7 +58,7 @@ class MainPage(webapp2.RequestHandler):
 
 class CheckCoinGap(webapp2.RequestHandler):  
 
-    arr_coins = ['EOS', 'DASH']
+    arr_coins = ['EOS', 'DASH', 'XMR', 'LTC', 'ETH', 'QTUM', 'ETC']
 
     def get(self):
         coin_ticker_instance = coin_ticker.CoinTicker()
@@ -105,30 +109,42 @@ class CheckCoinGap(webapp2.RequestHandler):
 
 class CheckCoinListed(webapp2.RequestHandler):
     
-    arr_coins = ['KNC', 'HSR', 'NEO', 'EOS', 'XEM', 'OMG', 'MCO']
+    arr_coins = ['KNC', 'HSR', 'NEO', 'EOS', 'XEM', 'OMG', 'MCO', 'GTO', 'XVG', 'ONT']
+
+    market_bithumb = 'bithumb'
+    market_upbit = 'upbit'
 
     def get(self):
-        self.check_bithumb_listed()
+        self.check_coin_listed()
         return
 
-    def check_bithumb_listed(self):
+    def check_coin_listed(self):
         for coin_name in self.arr_coins:
             coin_ticker_instance = coin_ticker.CoinTicker()
-            is_listed = coin_ticker_instance.check_bithumb_ticker_listed(coin_name)
-            print('Coin : %s, listed : %s' % (coin_name, str(is_listed)))
+            is_bithumb_listed = coin_ticker_instance.check_bithumb_ticker_listed(coin_name)
+            is_upbit_listed = coin_ticker_instance.check_upbit_desc_listed(coin_name)
+            print('Coin : %s, listed bithumb : %s, listed upbit : %s' % ( coin_name, str(is_bithumb_listed), str(is_upbit_listed) ))
 
-            query_coins = CoinDB.query_coin(coin_name)
-            if query_coins is None or query_coins.count() == 0:
-                if is_listed is True:
-                    print('Check DB and Add DB')
-                    coin = CoinDB(name = coin_name)
+            query_bithumb_coins = CoinDB.query_coin(coin_name, self.market_bithumb)
+            if query_bithumb_coins is None or query_bithumb_coins.count() == 0:
+                if is_bithumb_listed is True:
+                    print('[Bithumb] Check DB and Add DB')
+                    coin = CoinDB(name = coin_name, market = self.market_bithumb)
                     coin.put()
-                    self.sendTelegramMsg(coin_name)
+                    self.sendTelegramMsg(coin_name, self.market_bithumb)
+
+            query_upbit_coins = CoinDB.query_coin(coin_name, self.market_upbit)
+            if query_upbit_coins is None or query_upbit_coins.count() == 0:
+                if is_upbit_listed is True:
+                    print('[Upbit] Check DB and Add DB')
+                    coin = CoinDB(name = coin_name, market = self.market_upbit)
+                    coin.put()
+                    self.sendTelegramMsg(coin_name, self.market_upbit)
 
         return
 
-    def sendTelegramMsg(self, coin_name):
-        telegram_msg = u'%s 코인 빗썸 상장!!' % (str(coin_name))
+    def sendTelegramMsg(self, coin_name, market):
+        telegram_msg = u'%s 코인 %s 거래소 상장!!' % ( str(coin_name), str(market) )
         broadcast(telegram_msg)
 
 app = webapp2.WSGIApplication([
